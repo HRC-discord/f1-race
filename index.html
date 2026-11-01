@@ -19,7 +19,7 @@ input[type=color]{padding:0;height:36px}
 .ped{display:grid;gap:10px}.ped div{width:70px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;touch-action:none}
 </style></head><body>
 <canvas id="c"></canvas>
-<div id="top"></div><button id="cam" style="position:fixed;right:8px;top:calc(8px + env(safe-area-inset-top,0px));display:none">🎥 시점</button><div id="hud"><div id="info"></div><select id="mapSel"></select></div>
+<button id="go" style="position:fixed;left:50%;transform:translateX(-50%);bottom:35%;display:none;font-size:20px;padding:14px 28px;background:#e10600;border:0;font-weight:700">🏁 경기 시작</button><div id="top"></div><button id="cam" style="position:fixed;right:8px;top:calc(8px + env(safe-area-inset-top,0px));display:none">🎥 시점</button><div id="hud"><div id="info"></div><select id="mapSel"></select></div>
 <div id="ctl"><svg id="wheel" viewBox="0 0 100 100"><g id="wg"><circle cx="50" cy="50" r="42" fill="none" stroke="#ddd" stroke-width="9"/><path d="M50 50V92M50 50L12 38M50 50L88 38" stroke="#ddd" stroke-width="7"/><rect x="44" y="4" width="12" height="10" fill="#e10600"/></g></svg>
 <div class="ped"><div id="bst" style="background:#e67e00">부스트</div><div id="gas" style="background:#1a8f3c">엑셀</div><div id="brk" style="background:#c62828">브레이크</div></div></div>
 <div id="menu"><div class="card">
@@ -42,7 +42,7 @@ const MAPS=[
 {n:"F1경기장",bg:"#3c7a3c",d:"s",sy:.6,r:[1100,1000,1100,1000,1100,1000,1100,1000,1100,1000,1100,1000]},
 {n:"사막",bg:"#d9b96e",d:"c",sy:.85,r:[1300,1000,1250,900,1350,1000,1200,950,1300,1050,1250,1000]},
 {n:"해변길",bg:"#2f8fd0",d:"p",sy:.5,r:[1250,1000,1200,1100,1250,950,1200,1050,1250,1000,1150,1100]}];
-const W=330,$=id=>document.getElementById(id),cv=$("c"),g=new Proxy({},{get:()=>()=>{},set:()=>true});
+const W=396,$=id=>document.getElementById(id),cv=$("c"),g=new Proxy({},{get:()=>()=>{},set:()=>true});
 let me={n:"",b:0,c:BR[0][1],w:"#ffffff"},mi=0,C=[],D=[],room=null,host=true,code="",playing=false;
 let car={x:0,y:0,a:0,v:0,kx:0,ky:0,lap:0,idx:0},keys={},steerT=0,gas=0,brk=0,bst=0,peers={};
 function mk(m){const R0=m.r,R=[];R0.forEach((r,i)=>{R.push(r);R.push((r+R0[(i+1)%R0.length])/2*(i%2?.5:1.45))});const n=R.length,P=R.map((r,i)=>{const t=i/n*Math.PI*2;return[Math.cos(t)*r*3,Math.sin(t)*r*m.sy*3]}),o=[];
@@ -54,32 +54,33 @@ function setMap(i){mi=i;const m=MAPS[i];C=mk(m);D=[];let s=i*977+13;const rn=()=
 for(let k=0;k<2800;k++){const q=C[(rn()*C.length)|0],x=q[0]+(rn()-.5)*1500,y=q[1]+(rn()-.5)*1500;if(near(x,y)[0]<W/2+95||(m.d=="p"&&y>2700))continue;
 D.push({x,y,w:30+rn()*60,h:30+rn()*90,c:rn()})}
 $("mapSel").value=i;build3d();place()}
-function place(){const a=Math.atan2(C[1][1]-C[0][1],C[1][0]-C[0][0]),sl=Math.floor(Math.random()*6),o=(sl%2?1:-1)*50;
-car.x=C[0][0]-Math.cos(a)*(70+(sl>>1)*200)-Math.sin(a)*o;car.y=C[0][1]-Math.sin(a)*(70+(sl>>1)*200)+Math.cos(a)*o;car.a=a;car.v=0;car.kx=car.ky=0;car.lap=-1;car.idx=near(car.x,car.y)[1]}
+function place(sl){if(!C.length)return;if(sl==null)sl=car.slot||0;car.slot=sl;const L=C.length;let t=0;for(let i=0;i<L;i++){const p=C[i],q=C[(i+1)%L];t+=Math.hypot(q[0]-p[0],q[1]-p[1])}
+const sp=t/L,d=120+(sl>>1)*260,i=((L-Math.round(d/sp))%L+L)%L,p=C[i],q=C[(i+1)%L],a=Math.atan2(q[1]-p[1],q[0]-p[0]),o=(sl%2?1:-1)*55;
+car.x=p[0]-Math.sin(a)*o;car.y=p[1]+Math.cos(a)*o;car.a=a;car.v=0;car.kx=car.ky=0;car.lap=-1;car.idx=near(car.x,car.y)[1]}
 // 메뉴
 BR.forEach((b,i)=>{const e=document.createElement("button");e.textContent=b[0];e.onclick=()=>{me.b=i;$("bc").value=b[1];me.c=b[1];sel()};e.style.borderLeft="6px solid "+b[1];$("brands").append(e)});
 function sel(){[...$("brands").children].forEach((e,i)=>e.classList.toggle("on",i==me.b))}
 $("bc").value=BR[0][1];sel();
 MAPS.forEach((m,i)=>{const o=document.createElement("option");o.value=i;o.textContent="맵: "+m.n;$("mapSel").append(o)});
 $("mapSel").onchange=e=>{if(host){setMap(+e.target.value);pub()}};
-function start(){me.n=$("nm").value||"레이서"+Math.floor(Math.random()*90+10);me.c=$("bc").value;me.w=$("wc").value;
+function start(){GS=room?0:2;$("go").style.display=room&&host?"block":"none";me.n=$("nm").value||"레이서"+Math.floor(Math.random()*90+10);me.c=$("bc").value;me.w=$("wc").value;
 $("menu").style.display="none";$("hud").style.display="block";$("top").style.display="block";$("cam").style.display="block";if("ontouchstart"in window)$("ctl").style.display="flex";playing=true;setMap(mi);pub()}
 $("solo").onclick=()=>{host=true;start()};
 function mkRoom(code,asHost){return new Promise((res,rej)=>{
 const P=new Peer(asHost?"f1race-"+code:undefined);let cb=()=>{},me={},pe={},cs=[];const T=setTimeout(()=>rej({code:"timeout"}),10000);
 const emit=()=>cb({peers:[{peer:"me",isMe:true,presence:me},...Object.keys(pe).map(k=>({peer:k,isMe:false,presence:pe[k]}))]});
 const bc=(m,ex)=>cs.forEach(c=>{if(c!==ex&&c.open)c.send(m)});
-const api={presence:p=>{me=p;const m={i:asHost?"host":P.id,p};if(asHost)bc(m);else if(cs[0]&&cs[0].open)cs[0].send(m)},onPeers:f=>{cb=f;emit()}};
+const api={id:asHost?"host":null,presence:p=>{me=p;const m={i:asHost?"host":P.id,p};if(asHost)bc(m);else if(cs[0]&&cs[0].open)cs[0].send(m)},onPeers:f=>{cb=f;emit()}};
 const hook=c=>{cs.push(c);c.on("data",m=>{if(m.g){delete pe[m.i];emit();return}pe[m.i]=m.p;c.pid=m.i;if(asHost)bc(m,c);emit()});c.on("close",()=>{cs=cs.filter(x=>x!==c);if(c.pid){delete pe[c.pid];if(asHost)bc({i:c.pid,g:1});emit()}})};
 P.on("error",e=>{clearTimeout(T);rej(e)});
 if(asHost){P.on("open",()=>{clearTimeout(T);res(api)});P.on("connection",c=>c.on("open",()=>hook(c)))}
-else P.on("open",()=>{const c=P.connect("f1race-"+code);c.on("open",()=>{clearTimeout(T);hook(c);res(api)})})})}
+else P.on("open",()=>{api.id=P.id;const c=P.connect("f1race-"+code);c.on("open",()=>{clearTimeout(T);hook(c);res(api)})})})}
 async function conn(c,as){
 try{room=await mkRoom(c.toLowerCase(),as)}catch(e){$("msg").textContent="방 연결 실패: "+((e&&(e.type||e.code))||e);return false}code=c;room.onPeers(ch=>{peers={};ch.peers.forEach(p=>{if(!p.isMe&&p.presence.x!=null)peers[p.peer]=p});
-if(!host){const h=ch.peers.find(p=>p.presence.h);if(h&&h.presence.m!=mi)setMap(h.presence.m)}});return true}
+if(host){ch.peers.forEach(p=>{if(!p.isMe&&!(p.peer in SL))SL[p.peer]=Object.keys(SL).length})}else{const h=ch.peers.find(p=>p.presence.h);if(h){if(h.presence.m!=mi)setMap(h.presence.m);if(h.presence.g&&GS==0){GS=1;cdT=performance.now()}const s=h.presence.sl&&h.presence.sl[room.id];if(s!=null&&s!==car.slot&&GS==0){car.slot=s;if(C.length)place(s)}}}});return true}
 $("mk").onclick=async()=>{const c=Math.random().toString(36).slice(2,6).toUpperCase();if(await conn(c,1)){host=true;start()}};
 $("jn").onclick=async()=>{const c=$("code").value.trim().toUpperCase();if(c.length<4)return $("msg").textContent="4자리 방 코드를 입력하세요.";if(await conn(c,0)){host=false;$("mapSel").disabled=true;start()}};
-let lastPub=0;function pub(){if(!room)return;room.presence({n:me.n,b:me.b,c:me.c,w:me.w,x:car.x,y:car.y,a:car.a,v:car.v,m:mi,h:host,s:car.bo&&Math.abs(car.st)>.3&&car.v>150?1:0})}
+let lastPub=0;function pub(){if(!room)return;const o={n:me.n,b:me.b,c:me.c,w:me.w,x:car.x,y:car.y,a:car.a,v:car.v,m:mi,h:host,s:car.bo&&Math.abs(car.st)>.3&&car.v>150?1:0};if(host){o.sl=SL;o.g=GS>0?1:0}room.presence(o)}
 // 입력
 addEventListener("keydown",e=>{const k=e.key.toLowerCase();keys[k]=1;if(k=="v")fp=!fp});addEventListener("keyup",e=>keys[e.key.toLowerCase()]=0);
 const wh=$("wheel");let wd=0;const ws=e=>{const r=wh.getBoundingClientRect();steerT=Math.max(-1,Math.min(1,(e.clientX-r.left-r.width/2)/(r.width/2)));$("wg").style.transform="rotate("+steerT*70+"deg)";$("wg").style.transformOrigin="50px 50px"};
@@ -103,7 +104,7 @@ const st=steerT||((keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)),up
 const[dist,idx]=near(car.x,car.y),on=dist<W/2+6,bo=bst||keys.shift,mx=on?(bo?900:600):130;car.bo=bo;car.st=st;
 if(up)car.v+=(bo?640:340)*dt;if(dn)car.v-=(car.v>0?420:150)*dt;car.v-=car.v*(on?.35:1.6)*dt;
 if(car.v>mx)car.v-=(car.v-mx)*3*dt;if(car.v<-90)car.v=-90;
-car.a+=st*dt*3/(1+Math.abs(car.v)/900)*Math.max(-1,Math.min(1,car.v/110));
+if(GS==1&&performance.now()-cdT>3000)GS=2;if(GS<2){car.v=0;car.kx=car.ky=0}car.a+=st*dt*3/(1+Math.abs(car.v)/900)*Math.max(-1,Math.min(1,car.v/110));
 car.x+=(Math.cos(car.a)*car.v*1.5+car.kx)*dt;car.y+=(Math.sin(car.a)*car.v*1.5+car.ky)*dt;car.kx*=1-3*dt;car.ky*=1-3*dt;
 for(const id in peers){const p=peers[id].presence,dx=car.x-p.x,dy=car.y-p.y,d=Math.hypot(dx,dy);
 if(d<80&&d>.1){const nx=dx/d,ny=dy/d,imp=Math.abs(car.v)+Math.abs(p.v||0);car.x+=nx*(80-d);car.y+=ny*(80-d);
@@ -136,7 +137,7 @@ if(i%32==0){const k=m.d,ox=nx*sd,oz=nz*sd;if(k=="b")A(new THREE.BoxGeometry(30,1
 for(let i=0;i<n;i+=12){const p=C[i],q=C[(i+1)%n];A(new THREE.BoxGeometry(45,.3,4),"#fff",p[0],.6,p[1],1).rotation.y=-Math.atan2(q[1]-p[1],q[0]-p[0])}
 const a=Math.atan2(C[1][1]-C[0][1],C[1][0]-C[0][0]),g=new THREE.Group();[1,-1].forEach(sd=>{const o=new THREE.Mesh(new THREE.BoxGeometry(8,90,8),M("#222"));o.position.set(0,45,sd*(W/2+6));g.add(o)});const bm=new THREE.Mesh(new THREE.BoxGeometry(14,16,W+30),M("#e10600"));bm.position.y=96;g.add(bm);g.position.set(C[0][0],0,C[0][1]);g.rotation.y=-a;sc.add(g)}
 function extra(m){SP.length=0;LN.length=0;more(m);ring(m);if(m.d!="b")return;const B=(geo,c,x,y,z)=>{const o=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:c,fog:false}));o.position.set(x,y,z);sc.add(o)};B(new THREE.ConeGeometry(1800,840,24),"#06080d",-600,420,-6200);B(new THREE.CylinderGeometry(8,20,600,10),"#d96bd6",-600,1140,-6200);B(new THREE.SphereGeometry(30,10,8),"#ff9ae8",-600,1470,-6200)}
-let CK,CKS,CKW,CKL=[],ckT=0;function mkCockpit(){const G=new THREE.Group(),ad=(o,z)=>{o.renderOrder=z;return o},ac=BR[me.b][2],c=document.createElement("canvas");c.width=512;c.height=340;const x=c.getContext("2d");
+let GS=2,cdT=0,SL={host:0};$("go").onclick=()=>{GS=1;cdT=performance.now();$("go").style.display="none";pub()};let CK,CKS,CKW,CKL=[],ckT=0;function mkCockpit(){const G=new THREE.Group(),ad=(o,z)=>{o.renderOrder=z;return o},ac=BR[me.b][2],c=document.createElement("canvas");c.width=512;c.height=340;const x=c.getContext("2d");
 const rr=(a,b,w,h,r)=>{x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()};
 const body=()=>{x.beginPath();x.moveTo(110,30);x.lineTo(402,30);x.quadraticCurveTo(470,34,478,90);x.lineTo(500,250);x.quadraticCurveTo(505,330,440,330);x.lineTo(400,330);x.quadraticCurveTo(360,325,340,270);x.lineTo(310,235);x.lineTo(202,235);x.lineTo(172,270);x.quadraticCurveTo(152,325,112,330);x.lineTo(72,330);x.quadraticCurveTo(7,330,12,250);x.lineTo(34,90);x.quadraticCurveTo(42,34,110,30);x.closePath()};
 body();x.save();x.clip();x.fillStyle="#0e0f12";x.fillRect(0,0,512,340);x.fillStyle="#1b1e24";for(let i=0;i<512;i+=6)for(let j=0;j<340;j+=6)if((i+j)%12==0)x.fillRect(i,j,3,3);
@@ -245,6 +246,6 @@ const nw=performance.now(),q=Math.min(.05,(nw-(render3d.t||nw))/1e3);render3d.t=
 SP.forEach(o=>{if(!o.m.visible)return;o.t-=q;o.vy-=300*q;const p=o.m.position;p.x+=o.vx*q;p.y+=o.vy*q;p.z+=o.vz*q;if(p.y<1&&o.vy<0){p.y=1;o.vy*=-.35;o.vx*=.8;o.vz*=.8}const k=Math.max(0,o.t/o.t0);if(k<=0)o.m.visible=false;o.m.material.color.setHSL(.02+.12*k,1,.35+.4*k);o.m.material.opacity=Math.min(1,k*1.6);o.m.scale.setScalar(3.5+12*k)});
 for(let i=0;i<DM.length;i++){const o=DM[i];o.visible=Math.abs(o.position.x-car.x)<4300&&Math.abs(o.position.z-car.y)<4300}
 if(CK){CK.visible=fp;if(fp){CKW.rotation.z=-(car.st||0)*.9;if(++ckT%5==0){const v=Math.round(Math.abs(car.v)*.5),x=CKS.x;x.fillStyle="#05080c";x.fillRect(0,0,256,128);x.fillStyle="#fff";x.font="bold 64px monospace";x.textAlign="center";x.fillText(v,128,66);x.font="bold 20px sans-serif";x.fillStyle="#8cf";x.fillText("km/h",128,92);x.fillStyle="#ffd400";x.fillText("G"+Math.max(1,Math.min(8,Math.ceil(v/56)))+"  LAP "+Math.max(0,car.lap),128,118);CKS.t.needsUpdate=true;const k=Math.min(1,Math.abs(car.v)/600);CKL.forEach((o,i)=>o.material.color.set(k>(i+1)/9?(i<3?"#2ecc71":i<6?"#ff3b30":"#2d7bff"):"#222"))}}}
-lines(sp,q);R3.render(sc,cam);const T=3,dn=Math.max(0,car.lap);$("top").textContent=dn>=T?"🏁 완주!":"남은 바퀴 "+(T-dn)+" / "+T}
+lines(sp,q);R3.render(sc,cam);const T=3,dn=Math.max(0,car.lap);$("top").textContent=GS==0?"대기 중… 방장이 시작하면 출발해요":GS==1?String(Math.max(1,Math.ceil(3-(performance.now()-cdT)/1000))):dn>=T?"🏁 완주!":"남은 바퀴 "+(T-dn)+" / "+T}
 requestAnimationFrame(loop);
 </script></body></html>
