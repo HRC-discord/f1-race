@@ -118,7 +118,7 @@ else{g.fillStyle=d.c>.6?"#2e7d32":"#c9a54f";g.beginPath();if(d.c>.6)g.rect(d.x,d
 let t0=performance.now();
 function loop(t){const dt=Math.min(.05,(t-t0)/1e3);t0=t;requestAnimationFrame(loop);if(!playing)return;
 const st=steerT||((keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)),up=gas||bst||keys[" "]||keys.w||keys.arrowup,dn=brk||keys.s||keys.arrowdown;
-const[dist,idx]=near(car.x,car.y),on=dist<W/2+6,bo=bst||keys[" "],mx=on?(bo?900:600):130;car.bo=bo;car.st=st;const dr=(keys.shift||dft)&&Math.abs(st)>.2&&car.v>180&&on;car.dr=dr;if(dr){car.dt=(car.dt||0)+dt;car.v-=car.v*.12*dt}else if(car.dt>0){if(car.dt>.8&&GS==2)car.v+=Math.min(160,car.dt*70);car.dt=0}
+const[dist,idx]=near(car.x,car.y),on=dist<(MAPS[mi].d=="s"||MAPS[mi].d=="i"?W/2+125:W/2+6),bo=bst||keys[" "],mx=on?(bo?900:600):130;car.bo=bo;car.st=st;const dr=(keys.shift||dft)&&Math.abs(st)>.2&&car.v>180&&on;car.dr=dr;if(dr){car.dt=(car.dt||0)+dt;car.v-=car.v*.12*dt}else if(car.dt>0){if(car.dt>.8&&GS==2)car.v+=Math.min(160,car.dt*70);car.dt=0}
 if(up)car.v+=(bo?640:340)*dt;if(dn)car.v-=(car.v>0?420:150)*dt;car.v-=car.v*(on?.35:1.6)*dt;
 if(car.v>mx)car.v-=(car.v-mx)*3*dt;if(car.v<-90)car.v=-90;
 if(GS==1&&performance.now()-cdT>3000){GS=2;T0=performance.now()}if(GS==2&&!T0)T0=performance.now();if(GS!=2){car.v=0;car.kx=car.ky=0}car.a+=st*dt*3*(dr?1.7:1)/(1+Math.abs(car.v)/900)*Math.max(-1,Math.min(1,car.v/110));
